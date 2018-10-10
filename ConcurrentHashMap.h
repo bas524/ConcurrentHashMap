@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Poco/RWLock.h>
 #include <algorithm>
 #include <unordered_map>
@@ -40,7 +42,7 @@
 
 template <typename Key, typename Value>
 class ConcurrentHashMap {
-  std::unordered_map<Key, Value> _map;
+  mutable std::unordered_map<Key, Value> _map;
   mutable Poco::RWLock _rwLock;
 
  public:
@@ -53,7 +55,7 @@ class ConcurrentHashMap {
     Poco::ScopedReadRWLock readRWLock(o._rwLock);
     _map = o._map;
   }
-  ConcurrentHashMap(ConcurrentHashMap &&o) noexcept : _rwLock(o._rwLock) {
+  ConcurrentHashMap(ConcurrentHashMap &&o) noexcept : _rwLock() {
     Poco::ScopedWriteRWLock writeRWLock(o._rwLock);
     _map = std::move(o._map);
   }
@@ -75,6 +77,23 @@ class ConcurrentHashMap {
     bool result;
     DEFENCE_SOCPE_WITH_RESULT(result, _map.find(k) != _map.end(), readLock);
     return result;
+  }
+  void erase(const Key &key, OperationMode mode = OperationMode::WITH_LOCK) { DEFENCE_SOCPE(_map.erase(key), writeLock); }
+  template <typename Predicate>
+  void eraseIf(Predicate predicate, OperationMode mode = OperationMode::WITH_LOCK) {
+    DEFENCE_SOCPE(
+        for (auto it = _map.begin(); it != _map.end();) {
+          if (predicate(*it)) {
+            it = _map.erase(it);
+          } else {
+            ++it;
+          }
+        },
+        writeLock);
+  }
+  template <typename Predicate>
+  void eraseKeyIf(Predicate predicate, const Key &key, OperationMode mode = OperationMode::WITH_LOCK) {
+    DEFENCE_SOCPE(auto item = _map.find(key); if (item != _map.end() && predicate(*item)) { _map.erase(item); }, writeLock);
   }
   template <typename Function>
   void doForEeach(Function function, OperationMode mode = OperationMode::WITH_LOCK) const {
@@ -105,5 +124,39 @@ class ConcurrentHashMap {
           }
         },
         writeLock);
+  }
+  template <typename Function>
+  void doForKey(Function function, const Key &key, OperationMode mode = OperationMode::WITH_LOCK) const {
+    DEFENCE_SOCPE(auto item = _map.find(key); if (item != _map.end()) { function(*item); }, readLock);
+  }
+  template <typename Function>
+  void applyForKey(Function function, const Key &key, OperationMode mode = OperationMode::WITH_LOCK) {
+    DEFENCE_SOCPE(auto item = _map.find(key); if (item != _map.end()) { function(*item); }, writeLock);
+  }
+  template <typename Function>
+  void insertOrDoIfExists(const Key &key, const Value &value, Function f) {
+    if (contains(key)) {
+      doForKey(f, key);
+    } else {
+      Poco::ScopedWriteRWLock writeRWLock(_rwLock);
+      if (contains(key, OperationMode::FORCE_NO_LOCK)) {
+        doForKey(f, key, OperationMode::FORCE_NO_LOCK);
+      } else {
+        insert(key, value, OperationMode::FORCE_NO_LOCK);
+      }
+    }
+  }
+  template <typename Function>
+  void emplaceOrDoIfExists(Key &&key, Value &&value, Function f) {
+    if (contains(key)) {
+      doForKey(f, key);
+    } else {
+      Poco::ScopedWriteRWLock writeRWLock(_rwLock);
+      if (contains(key, OperationMode::FORCE_NO_LOCK)) {
+        doForKey(f, key, OperationMode::FORCE_NO_LOCK);
+      } else {
+        emplace(std::move(key), std::move(value), OperationMode::FORCE_NO_LOCK);
+      }
+    }
   }
 };
