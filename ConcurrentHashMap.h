@@ -79,6 +79,9 @@ class ConcurrentHashMap {
     return result;
   }
   void erase(const Key &key, OperationMode mode = OperationMode::WITH_LOCK) { DEFENCE_SOCPE(_map.erase(key), writeLock); }
+  void eraseKeys(const std::vector<Key> &keys, OperationMode mode = OperationMode::WITH_LOCK) {
+    DEFENCE_SOCPE(for (const auto &k : keys) { _map.erase(k); }, writeLock);
+  }
   template <typename Predicate>
   void eraseIf(Predicate predicate, OperationMode mode = OperationMode::WITH_LOCK) {
     DEFENCE_SOCPE(
