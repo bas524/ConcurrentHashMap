@@ -158,7 +158,7 @@ class ConcurrentHashMap {
     DefenceScopeReadLock([&]() { std::for_each(_map.begin(), _map.end(), function); }, _rwLock, mode == OperationMode::WITH_LOCK);
   }
   template <typename Function>
-  void applyForEeach(Function function, OperationMode mode = OperationMode::WITH_LOCK) {
+  void doForEeach(Function function, OperationMode mode = OperationMode::WITH_LOCK) {
     DefenceScopeWriteLock([&]() { std::for_each(_map.begin(), _map.end(), function); }, _rwLock, mode == OperationMode::WITH_LOCK);
   }
   template <typename Function, typename Predicate>
@@ -175,7 +175,7 @@ class ConcurrentHashMap {
         mode == OperationMode::WITH_LOCK);
   }
   template <typename Function, typename Predicate>
-  void applyForEeachIf(Function function, Predicate predicate, OperationMode mode = OperationMode::WITH_LOCK) {
+  void doForEeachIf(Function function, Predicate predicate, OperationMode mode = OperationMode::WITH_LOCK) {
     DefenceScopeWriteLock(
         [&]() {
           for (auto &item : _map) {
@@ -200,7 +200,7 @@ class ConcurrentHashMap {
         mode == OperationMode::WITH_LOCK);
   }
   template <typename Function>
-  void applyForKey(Function function, const Key &key, OperationMode mode = OperationMode::WITH_LOCK) {
+  void doForKey(Function function, const Key &key, OperationMode mode = OperationMode::WITH_LOCK) {
     DefenceScopeWriteLock(
         [&]() {
           auto item = _map.find(key);
