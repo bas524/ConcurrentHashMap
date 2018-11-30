@@ -1,6 +1,7 @@
 # ConcurrentHashMap
 
-ConcurrentHashMap implementation with functional (lambda) signatures. For read-write locks using Poco::RWLock
+ConcurrentHashMap implementation with functional (lambda) signatures. For read-write locks using std::shared_timed_mutex.
+C++14 requred.
 
 ## Example
 
