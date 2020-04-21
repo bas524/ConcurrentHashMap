@@ -1,6 +1,6 @@
 # ConcurrentHashMap
 
-ConcurrentHashMap implementation with functional (lambda) signatures. For read-write locks using std::shared_timed_mutex.
+ConcurrentHashMap implementation with functional (lambda) signatures. For read-write locks I used std::shared_timed_mutex.
 C++14 requred.
 
 ## Example
